@@ -1,4 +1,4 @@
-#include "neurotrie.h"
+#include "trie/neurotrie.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
