@@ -29,9 +29,7 @@ void read_line(char *line, __uint128_t *ip, uint8_t *len, uint32_t *next_hop){
     /* Fix me: handle mask */
 }
 
-int main()
-{
-    FILE *file = fopen("dataset/routes-293", "r");
+void read_ipv6(FILE *file){
     if (!file) {
         perror("Error opening file");
         return EXIT_FAILURE;
@@ -50,5 +48,11 @@ int main()
     }
     free(line);
     fclose(file);
+}
+
+int main()
+{
+    FILE *file = fopen("dataset/routes-293", "r");
+    read_ipv6(file);
     return 0;
 }
