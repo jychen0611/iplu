@@ -1,59 +1,98 @@
+import os
 import pybgpstream
+import argparse
 
-date = "2024-12-19"
+# Function to delete all .txt files in the current directory
+def delete_txt_files():
+    for file in os.listdir():
+        if file.endswith(".txt"):
+            os.remove(file)
+            print(f"Deleted: {file}")
 
-# Collect prefix and next-hop pairs
-prefix_nexthop_pairs = []
+# Function to generate the .txt file based on AS ID
+def generate_fib_by_as(date):
+    # Collect prefix and next-hop pairs
+    prefix_nexthop_pairs = []
 
-# Initialize the stream with the desired time range and collectors
-stream = pybgpstream.BGPStream(
-    from_time= date + " 00:00:00", until_time= date + " 00:10:00 UTC",
-    collectors=["route-views.sg", "route-views.eqix"],
-    record_type="updates",
-)
+    # Initialize the stream with the desired time range and collectors
+    stream = pybgpstream.BGPStream(
+        from_time= date + " 00:00:00", until_time= date + " 23:59:59 UTC",
+        collectors=["route-views.sg", "route-views.eqix"],
+        record_type="updates",
+    )
 
-# Iterate through the stream
-for elem in stream:
-    # Access the BGPRecord from the stream element
-    record = elem.record
-    
-    # Iterate over each BGPElem in the record
-    bgp_elem = record.get_next_elem()
-    while bgp_elem is not None:
-        # Only process 'announcement' type elements
-        if bgp_elem.type == 'A':
-            # Access the fields dictionary of the BGPElem object
-            fields = bgp_elem.fields
-            
-            # Extract prefix, next-hop, and prefix length from the fields
-            prefix = fields.get('prefix', 'N/A')
-            nexthop = fields.get('next-hop', 'N/A')
-            
-            # If prefix exists, extract prefix length
-            if prefix != 'N/A':
-                # The prefix length is determined by the CIDR notation of the prefix
-                prefixlen = prefix.split('/')[1] if '/' in prefix else 'N/A'
-            else:
-                prefixlen = 'N/A'
-            
-            # Output the extracted values
-            # print(f"Prefix: {prefix}, Next-Hop: {nexthop}, Prefix Length: {prefixlen}")
-            
-            # Add the prefix and next-hop to the list if they are valid
-            # Filter out only IPv6 prefixes (IPv6 contains ':')
-            if prefix != 'N/A' and nexthop != 'N/A' and ':' in prefix:
-                prefix_nexthop_pairs.append((prefix, nexthop))
+    # Iterate through the stream
+    for elem in stream:
+        # Access the BGPRecord from the stream element
+        record = elem.record
         
-        # Move to the next BGPElem in the record
+        # Iterate over each BGPElem in the record
         bgp_elem = record.get_next_elem()
+        while bgp_elem is not None:
+            # Only process 'announcement' type elements
+            if bgp_elem.type == 'A':
+                # Access the fields dictionary of the BGPElem object
+                fields = bgp_elem.fields
+                
+                # Extract prefix, next-hop, and prefix length from the fields
+                prefix = fields.get('prefix', 'N/A')
+                nexthop = fields.get('next-hop', 'N/A')
+                as_path = fields.get('as-path', 'N/A')
+                
+                # If prefix exists, extract prefix length
+                if prefix != 'N/A':
+                    # The prefix length is determined by the CIDR notation of the prefix
+                    prefixlen = prefix.split('/')[1] if '/' in prefix else 'N/A'
+                else:
+                    prefixlen = 'N/A'
+                
+                # Add the prefix and next-hop to the list if they are valid
+                if prefix != 'N/A' and nexthop != 'N/A' and ':' in prefix:
+                    prefix_nexthop_pairs.append((prefix, nexthop, as_path))
+            
+            # Move to the next BGPElem in the record
+            bgp_elem = record.get_next_elem()
+
+    # Sort the prefix and next-hop pairs lexicographically by the prefix
+    prefix_nexthop_pairs.sort(key=lambda pair: pair[0])
+
+    # Generate FIB files based on AS ID
+    as_fibs = {}
+    for prefix, nexthop, as_path in prefix_nexthop_pairs:
+        for as_id in as_path.split():
+            if as_id not in as_fibs:
+                as_fibs[as_id] = {}
+            # Ensure only one next-hop per prefix
+            if prefix not in as_fibs[as_id]:
+                as_fibs[as_id][prefix] = nexthop
 
 
-# Sort the prefix and next-hop pairs lexicographically by the prefix
-prefix_nexthop_pairs.sort(key=lambda pair: pair[0])
+    # Write the FIBs to separate .txt files for each AS with more than 90,000 entries
+    for as_id, fib_data in as_fibs.items():
+        if len(fib_data) > 90000:  # Only generate FIB files for AS with more than 90,000 entries
+            as_filename = f"{date}_AS_{as_id}.txt"
+            with open(as_filename, "w") as file:
+                for prefix, nexthop in fib_data:
+                    file.write(f"{prefix} {nexthop}\n")
+            print(f"Generated: {as_filename}")
+        else:
+            print(f"Skipped AS_{as_id} (only {len(fib_data)} entries)")
 
-# Open the output file in write mode and write sorted data
-with open(date + ".txt", "w") as file:
-    for prefix, nexthop in prefix_nexthop_pairs:
-        file.write(f"{prefix} {nexthop}\n")
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Process BGP updates.")
+parser.add_argument('--delete', action='store_true', help="Delete all previously generated .txt files.")
+parser.add_argument('--generate', action='store_true', help="Generate FIBs based on AS ID.")
+parser.add_argument('--date', type=str, help="Specify the date for generating FIBs.", default="2024-12-19")
+args = parser.parse_args()
 
+# Execute based on user input
+if args.delete:
+    delete_txt_files()
+
+if args.generate:
+    if not args.date:
+        print("Using default date 2024-12-19.")
+        generate_fib_by_as(args.date)
+    else:
+        generate_fib_by_as(args.date)
 
