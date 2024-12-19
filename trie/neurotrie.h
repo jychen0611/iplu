@@ -1,14 +1,14 @@
 
 #include <stdint.h>
 
-struct innode{
+struct neuro_innode{
     /* 1 ~ 128 */
     uint8_t stride;
     struct bit_vec *bit_vec_ptr;
     struct innode *innode_ptr;
-    struct leaf *leaf_ptr;
+    struct neuro_leaf *leaf_ptr;
     /* for child node headr array */
-    struct innode *next;
+    struct neuro_innode *next;
 };
 
 struct bit_vec{
@@ -20,11 +20,11 @@ struct bit_vec{
     struct bit_vec *next;
 };
 
-struct leaf{
-    uint32_t next_hop;
+struct neuro_leaf{
+    uint16_t next_hop;
     /* for next hop array */
     struct leaf *next;
 };
 
-static struct leaf* lookup();
-static void insert();
+static struct leaf* lookup(struct neuro_innode *t, __uint128_t key);
+static void insert(__uint128_t prefix, uint16_t next_hop);

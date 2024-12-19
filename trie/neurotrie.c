@@ -1,11 +1,11 @@
 #include "neurotrie.h"
 
-static struct leaf* lookup(__uint128_t ip)
+static struct leaf* lookup(struct neuro_innode *t, __uint128_t key)
 {
 
 }
 
-static void insert(__uint128_t ip, uint32_t next_hop)
+static void insert(struct neuro_innode *t,__uint128_t prefix, uint16_t next_hop)
 {
 
 }
