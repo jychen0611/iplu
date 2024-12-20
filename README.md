@@ -3,13 +3,20 @@ Some IP address look up methods.
 
 ## tools
 
-### Autonomous System (AS) FIB Generator
+### BGPStream FIB Generator
 
-This script processes BGP RIB (Routing Information Base) data to generate FIBs (Forwarding Information Bases) for Autonomous Systems (AS) with significant routing information. The script provides the following functionalities:
+This script processes BGP Routing Information Base (RIB) snapshots from the `route-views.sfmix` collector to generate Forwarding Information Base (FIB) files categorized by Autonomous System (AS) ID. The `route-views.sfmix` collector provides routing data from the San Francisco Metro Internet Exchange (SFMIX), located in San Francisco, California.
 
-* Generate FIB Files: Creates FIB files (.txt) for AS IDs with more than 90,000 routing entries.
+#### Features
 
-* Delete Generated Files: Removes all previously generated .txt files.
+1. **Generate FIB Files**:
+   - Extracts routing information from the `route-views.sfmix` RIB collector.
+   - Groups prefixes and next-hops by AS ID.
+   - Only generates files for AS IDs with more than 90,000 entries.
+   - This script primarily focuses on **IPv6** prefixes observed in the RIB data provided by route-views.sfmix. Adjustments can be made to include IPv4 data or other collectors if needed.
+
+2. **Delete Generated Files**:
+   - Deletes all `.txt` files in the current directory.
 
 #### Prerequisites
 
@@ -17,6 +24,7 @@ This script processes BGP RIB (Routing Information Base) data to generate FIBs (
 
 * pybgpstream library installed.
 
+* Internet connection to access BGP collectors
 
 #### Usage
 
@@ -59,7 +67,7 @@ Collects BGP data for a specified time range, and filters IPv6 prefixes (`:` in 
 
     For `2024-12-19_AS_174.txt`:
     ```
-    2001:1218:6002::/48 2001:de8:4::5:8511:1
-    2001:1218:6004::/48 2001:de8:4::5:8511:1
-    2001:1218:6009::/48 2001:de8:4::7713:1
+    2001:1201:10::/48 2001:504:30::ba02:253:1
+    2001:1201::/48 2001:504:30::ba06:4289:1
+    2001:1203:1000::/36 2001:504:30::ba06:4289:1
     ```
